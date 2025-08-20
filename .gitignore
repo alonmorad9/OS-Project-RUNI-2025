@@ -1,0 +1,59 @@
+# ---- Build artifacts ----
+/output/
+output/
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+*.out
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.lib
+*.exp
+
+# Analyzer binaries
+/analyzer
+analyzer
+
+# Unit test binaries / temp
+*.gcno
+*.gcda
+*.gcov
+*.prof
+*.profraw
+*.profdata
+
+# Logs & core dumps
+*.log
+core
+core.*
+
+# IDE / OS junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.code-workspace
+
+# CMake / Ninja / Make (if used)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+build/
+build-*/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z

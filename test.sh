@@ -242,15 +242,8 @@ echo "Tests failed: $failures"
 
 if [[ $failures -eq 0 ]]; then
     print_status "🎉 ALL $total_tests TESTS PASSED!"
-    print_status "Project is ready for submission!"
     exit 0
 else
     print_error "❌ $failures out of $total_tests tests FAILED"
-    if [[ $failures -le 2 ]]; then
-        print_warning "Only minor issues - project is still likely ready for submission"
-        exit 0
-    else
-        print_error "Please fix the failing tests before submission"
-        exit 1
-    fi
+    exit 1
 fi

@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
     cleanup_plugins(plugins, num_plugins);
     free(plugins);
 
-    printf("Pipeline shutdown complete\n");
+fprintf(stderr, "Pipeline shutdown complete\n"); /* moved to stderr to keep STDOUT clean */
     return 0;
 }
 
