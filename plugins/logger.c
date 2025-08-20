@@ -4,7 +4,7 @@
 #include <string.h>
 
 // Plugin-specific transformation function
-const char* plugin_transform(const char* input) {
+static const char* plugin_transform(const char* input) {
     if (!input) {
         return NULL;
     }
@@ -18,10 +18,5 @@ const char* plugin_transform(const char* input) {
 }
 
 // Plugin interface implementations
-const char* plugin_get_name(void) {
-    return "logger";
-}
-
-const char* plugin_init(int queue_size) {
-    return common_plugin_init(plugin_transform, "logger", queue_size);
-}
+const char* plugin_get_name(void) { return "logger"; }
+const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "logger", queue_size); }
