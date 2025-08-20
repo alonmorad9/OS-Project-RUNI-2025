@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include "plugin_common.h"
 #include <unistd.h>
 #include <stdio.h>
@@ -22,4 +23,3 @@ static const char* plugin_transform(const char* input) {
 const char* plugin_get_name(void) { return "typewriter"; }
 
 const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "typewriter", queue_size); }
-

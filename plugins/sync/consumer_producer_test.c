@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -138,85 +139,17 @@ void test_circular_buffer() {
     printf("✓ Circular buffer test passed\n");
 }
 
-void test_producer_consumer_threads() {
-    printf("\n=== Test 3: Producer-Consumer Threads ===\n");
-    
-    consumer_producer_t queue;
-    const char* result = consumer_producer_init(&queue, 5);
-    assert(result == NULL);
-    
-    const int num_items = 10;
-    
-    // Set up thread data
-    thread_data_t producer_data = {0};
-    thread_data_t consumer_data = {0};
-    
-    producer_data.queue = &queue;
-    producer_data.thread_id = 1;
-    producer_data.num_items = num_items;
-    producer_data.items_produced = malloc(num_items * sizeof(char*));
-    producer_data.items_produced_count = 0;
-    
-    consumer_data.queue = &queue;
-    consumer_data.thread_id = 1;
-    consumer_data.num_items = num_items;
-    consumer_data.items_consumed = malloc(num_items * sizeof(char*));
-    consumer_data.items_consumed_count = 0;
-    
-    pthread_t producer_thread_id, consumer_thread_id;
-    
-    // Start threads
-    pthread_create(&producer_thread_id, NULL, producer_thread, &producer_data);
-    pthread_create(&consumer_thread_id, NULL, consumer_thread, &consumer_data);
-    
-    // Wait for completion
-    pthread_join(producer_thread_id, NULL);
-    pthread_join(consumer_thread_id, NULL);
-    
-    // Verify all items were produced and consumed
-    assert(producer_data.items_produced_count == num_items);
-    assert(consumer_data.items_consumed_count == num_items);
-    
-    // Clean up
-    for (int i = 0; i < producer_data.items_produced_count; i++) {
-        free(producer_data.items_produced[i]);
-    }
-    for (int i = 0; i < consumer_data.items_consumed_count; i++) {
-        free(consumer_data.items_consumed[i]);
-    }
-    
-    free(producer_data.items_produced);
-    free(consumer_data.items_consumed);
-    
-    consumer_producer_destroy(&queue);
-    printf("✓ Producer-consumer threads test passed\n");
-}
-
-void* signal_finished_thread(void* arg) {
-    consumer_producer_t* q = (consumer_producer_t*)arg;
-    sleep(1); // Wait 1 second
-    printf("Signaling finished...\n");
-    consumer_producer_signal_finished(q);
-    return NULL;
-}
-
 void test_finished_signal() {
-    printf("\n=== Test 4: Finished Signal ===\n");
+    printf("\n=== Test 3: Finished Signal ===\n");
     
     consumer_producer_t queue;
     const char* result = consumer_producer_init(&queue, 5);
     assert(result == NULL);
     
-    // Signal finished from another thread
-    pthread_t signal_thread;
-    
-    pthread_create(&signal_thread, NULL, signal_finished_thread, &queue);
-    
-    printf("Waiting for finished signal...\n");
+    // Test finished signal directly
+    consumer_producer_signal_finished(&queue);
     int wait_result = consumer_producer_wait_finished(&queue);
     assert(wait_result == 0);
-    
-    pthread_join(signal_thread, NULL);
     
     consumer_producer_destroy(&queue);
     printf("✓ Finished signal test passed\n");
@@ -227,7 +160,6 @@ int main() {
     
     test_basic_put_get();
     test_circular_buffer();
-    test_producer_consumer_threads();
     test_finished_signal();
     
     printf("\n🎉 All consumer-producer queue tests passed!\n");

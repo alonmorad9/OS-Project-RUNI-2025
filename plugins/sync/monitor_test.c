@@ -1,8 +1,10 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <assert.h>
+#include <sched.h>
 #include "sync/monitor.h"
 
 // Test data structure
@@ -11,10 +13,6 @@ typedef struct {
     int* shared_data;
     int thread_id;
 } test_data_t;
-
-// Global monitor for testing
-monitor_t test_monitor;
-int shared_counter = 0;
 
 void* test_thread_wait_then_increment(void* arg) {
     test_data_t* data = (test_data_t*)arg;
