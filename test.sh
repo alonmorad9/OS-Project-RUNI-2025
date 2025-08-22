@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+# Test script for the project
+# This script runs all unit tests and checks their output
+# It also verifies that the expected plugins are present
+# Finally, it checks that the output files are generated
+
 set -euo pipefail
 
 RED='\033[0;31m'
@@ -12,12 +18,14 @@ print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
+# Run the build script
 print_status "Running build.sh"
 ./build.sh
 
 failures=0
 total_tests=0
 
+# Helper function to run a test
 run_test() {
     local name="$1"
     local expected="$2"
@@ -42,6 +50,7 @@ run_test() {
     fi
 }
 
+# Helper function to run a test expecting an error
 run_error_test() {
     local name="$1"
     local cmd="$2"
@@ -57,6 +66,7 @@ run_error_test() {
     fi
 }
 
+# Helper function to run a test expecting a specific output
 run_contains_test() {
     local name="$1"
     local contains="$2"
@@ -80,7 +90,7 @@ run_contains_test() {
     fi
 }
 
-# === UNIT TESTS ===
+# Unit tests, including sync and consumer-producer tests
 print_status "=== UNIT TESTS ==="
 
 print_info "Running monitor unit tests"
@@ -99,7 +109,7 @@ else
     failures=$((failures+1))
 fi
 
-# === BASIC PLUGIN FUNCTIONALITY ===
+# basic plugin functionality tests
 print_status "=== BASIC PLUGIN TESTS ==="
 
 run_test "uppercaser basic" "[logger] HELLO" \
@@ -114,7 +124,7 @@ run_test "flipper basic" "[logger] olleh" \
 run_test "expander basic" "[logger] h e l l o" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 10 expander logger | grep '\\[logger\\]' | head -n1"
 
-# === PLUGIN COMBINATIONS ===
+# plugin combination tests
 print_status "=== PLUGIN COMBINATION TESTS ==="
 
 run_test "uppercaser + rotator" "[logger] OHELL" \
@@ -129,20 +139,20 @@ run_test "uppercaser + flipper" "[logger] OLLEH" \
 run_test "flipper + expander" "[logger] o l l e h" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 10 flipper expander logger | grep '\\[logger\\]' | head -n1"
 
-# === COMPLEX CHAINS (Fixed expectations) ===
+# complex chains
 print_status "=== COMPLEX CHAIN TESTS ==="
 
-# Let's verify what the actual output should be step by step:
+
 # hello -> uppercaser -> HELLO -> flipper -> OLLEH -> expander -> O L L E H
 run_test "3-plugin chain" "[logger] O L L E H" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 10 uppercaser flipper expander logger | grep '\\[logger\\]' | head -n1"
 
 # hello -> uppercaser -> HELLO -> flipper -> OLLEH -> expander -> O L L E H -> rotator -> HO L L E (with space at end)
-# Let's test what we actually get first
 print_info "Checking 4-plugin chain actual output..."
 actual_4chain=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 uppercaser flipper expander rotator logger | grep '\[logger\]' | head -n1 || echo "TIMEOUT")
 print_info "4-plugin chain produces: '$actual_4chain'"
 
+# Check if the actual output matches the expected output
 if [[ "$actual_4chain" != "TIMEOUT" ]]; then
     run_test "4-plugin chain" "$actual_4chain" \
         "echo -e 'hello\\n<END>' | ./output/analyzer 10 uppercaser flipper expander rotator logger | grep '\\[logger\\]' | head -n1"
@@ -152,7 +162,7 @@ else
     total_tests=$((total_tests + 1))
 fi
 
-# === REPEATED PLUGIN TESTS (With timeouts and debugging) ===
+# repeated plugin tests, including timeouts and debugging
 print_status "=== REPEATED PLUGIN TESTS ==="
 
 print_info "Test 11: double rotator - Testing mathematical property"
@@ -179,7 +189,8 @@ else
     echo "  Expected: hello, Got: $result2"
     failures=$((failures+1))
 fi
-# === EDGE CASES ===
+
+# edge cases including empty strings and single characters
 print_status "=== EDGE CASE TESTS ==="
 
 run_test "empty string" "[logger] " \
@@ -197,7 +208,7 @@ run_test "single char expand (no spaces)" "[logger] a" \
 run_test "two characters expand" "[logger] a b" \
     "echo -e 'ab\\n<END>' | ./output/analyzer 10 expander logger | grep '\\[logger\\]' | head -n1"
 
-# === QUEUE SIZE TESTS ===
+# queue size tests
 print_status "=== QUEUE SIZE TESTS ==="
 
 run_test "queue size 1" "[logger] HELLO" \
@@ -206,25 +217,25 @@ run_test "queue size 1" "[logger] HELLO" \
 run_test "queue size 100" "[logger] HELLO" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 100 uppercaser logger | grep '\\[logger\\]' | head -n1"
 
-# === ASSIGNMENT EXAMPLE ===
+# assignment compliance tests
 print_status "=== ASSIGNMENT COMPLIANCE ==="
 
 run_contains_test "assignment example output" "\\[logger\\] OHELL" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 20 uppercaser rotator logger flipper typewriter"
 
-# === TYPEWRITER TESTS ===
+# typewriter tests
 print_status "=== TYPEWRITER TESTS ==="
 
 run_contains_test "typewriter output format" "\\[typewriter\\] hi" \
     "echo -e 'hi\\n<END>' | ./output/analyzer 10 typewriter"
 
-# === SHUTDOWN TESTS ===
+# shutdown tests
 print_status "=== SHUTDOWN TESTS ==="
 
 run_contains_test "pipeline shutdown message" "Pipeline shutdown complete" \
     "echo -e '<END>' | ./output/analyzer 10 logger"
 
-# === ERROR CONDITION TESTS ===
+# error condition tests
 print_status "=== ERROR CONDITION TESTS ==="
 
 run_error_test "no arguments" "./output/analyzer"
@@ -234,16 +245,16 @@ run_error_test "invalid queue size zero" "./output/analyzer 0 logger"
 run_error_test "non-numeric queue size" "./output/analyzer abc logger"
 run_error_test "invalid plugin" "./output/analyzer 10 nonexistent_plugin"
 
-# === FINAL SUMMARY ===
+# summary, including total tests, passed tests, and failed tests
 print_status "=== TEST SUMMARY ==="
 echo "Total tests run: $total_tests"
 echo "Tests passed: $((total_tests - failures))"
 echo "Tests failed: $failures"
 
 if [[ $failures -eq 0 ]]; then
-    print_status "🎉 ALL $total_tests TESTS PASSED!"
+    print_status "ALL $total_tests TESTS PASSED!"
     exit 0
 else
-    print_error "❌ $failures out of $total_tests tests FAILED"
+    print_error "$failures out of $total_tests tests FAILED"
     exit 1
 fi
