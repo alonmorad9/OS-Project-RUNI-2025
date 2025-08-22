@@ -5,6 +5,7 @@
 
 /**
  * Monitor structure that can remember its state
+ * This solves the race condition where signals sent before waiting are lost
  */
 typedef struct {
     pthread_mutex_t mutex;      /* Mutex for thread safety */

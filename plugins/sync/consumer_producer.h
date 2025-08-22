@@ -6,6 +6,7 @@
 
 /**
  * Consumer-Producer Queue Structure for thread-safe producer-consumer pattern
+ * Now using monitors for simpler implementation
  */
 typedef struct {
     char** items;                    /* array of string pointers */
