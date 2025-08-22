@@ -9,8 +9,7 @@
  * Common SDK structures and functions for plugin implementation
  */
 
-// Plugin context structure
-typedef struct {
+typedef struct { // Plugin context structure
     const char* name;                                    // Plugin name (for diagnosis)
     consumer_producer_t* queue;                          // Input queue
     pthread_t consumer_thread;                           // Consumer thread

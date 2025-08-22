@@ -4,8 +4,9 @@
 #include <string.h>
 #include <ctype.h>
 
-// Plugin-specific transformation function
-static const char* plugin_transform(const char* input) {
+// Uppercaser plugin transformation function
+
+static const char* plugin_transform(const char* input) { // transform the input string
     if (!input) {
         return NULL;
     }
@@ -26,6 +27,5 @@ static const char* plugin_transform(const char* input) {
     return result;
 }
 
-// Plugin interface implementations
-const char* plugin_get_name(void) { return "uppercaser"; }
-const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "uppercaser", queue_size); }
+const char* plugin_get_name(void) { return "uppercaser"; } // get plugin name
+const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "uppercaser", queue_size); } // initialize plugin

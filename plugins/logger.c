@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// * Plugin transform function
+// Logger plugin transform function
 
 static const char* plugin_transform(const char* input) { // transform input string
     if (!input) {

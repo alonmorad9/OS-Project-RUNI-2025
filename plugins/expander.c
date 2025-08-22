@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// * Plugin transform function
+// Expander plugin transformation function
 
 static const char* plugin_transform(const char* input) { // transform input string
     if (!input) return NULL;

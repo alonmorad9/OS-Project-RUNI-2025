@@ -5,7 +5,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-static const char* plugin_transform(const char* input) {
+// Typewriter plugin transform function
+
+static const char* plugin_transform(const char* input) { // transform the input string
     if (!input) return NULL;
     size_t len = strlen(input);
     printf("[typewriter] ");
@@ -20,6 +22,6 @@ static const char* plugin_transform(const char* input) {
     return strdup(input);
 }
 
-const char* plugin_get_name(void) { return "typewriter"; }
+const char* plugin_get_name(void) { return "typewriter"; } // get plugin name
 
-const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "typewriter", queue_size); }
+const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "typewriter", queue_size); } // initialize plugin
