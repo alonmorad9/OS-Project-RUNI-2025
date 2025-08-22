@@ -5,19 +5,18 @@
 #include <pthread.h>
 
 /**
- * Consumer-Producer queue structure for thread-safe producer-consumer pattern
- * Using monitors for simpler implementation
+ * Consumer-Producer Queue Structure for thread-safe producer-consumer pattern
  */
 typedef struct {
-    char** items;                    /* Array of string pointers */
-    int capacity;                    /* Maximum number of items */
-    int count;                       /* Current number of items */
-    int head;                        /* Index of first item */
-    int tail;                        /* Index of next insertion point */
-    pthread_mutex_t mutex;           /* Mutex to protect queue state */
-    monitor_t not_full_monitor;      /* Monitor for "not full" state */
-    monitor_t not_empty_monitor;     /* Monitor for "not empty" state */
-    monitor_t finished_monitor;      /* Monitor for finished signal */
+    char** items;                    /* array of string pointers */
+    int capacity;                    /* maximum number of items */
+    int count;                       /* current number of items */
+    int head;                        /* index of first item */
+    int tail;                        /* index of next insertion point */
+    pthread_mutex_t mutex;           /* mutex to protect queue state */
+    monitor_t not_full_monitor;      /* monitor for "not full" state */
+    monitor_t not_empty_monitor;     /* monitor for "not empty" state */
+    monitor_t finished_monitor;      /* monitor for finished signal */
 } consumer_producer_t;
 
 /**
