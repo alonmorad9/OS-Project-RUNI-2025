@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char* plugin_transform(const char* input) {
+// * Plugin transform function
+
+static const char* plugin_transform(const char* input) { // transform input string
     if (!input) return NULL;
     size_t len = strlen(input);
     if (len == 0) {
@@ -10,7 +12,7 @@ static const char* plugin_transform(const char* input) {
         if (empty) empty[0] = '\0';
         return empty;
     }
-    // Each char separated by one space: size = len + (len-1) spaces
+    // each char separated by one space: size = len + (len-1) spaces
     size_t out_len = len + (len - 1);
     char* out = (char*)malloc(out_len + 1);
     if (!out) return NULL;
@@ -23,7 +25,6 @@ static const char* plugin_transform(const char* input) {
     return out;
 }
 
-const char* plugin_get_name(void) { return "expander"; }
+const char* plugin_get_name(void) { return "expander"; } // get plugin name
 
-const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "expander", queue_size); }
-
+const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "expander", queue_size); } // initialize plugin

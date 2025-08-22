@@ -3,20 +3,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Plugin-specific transformation function
-static const char* plugin_transform(const char* input) {
+// * Plugin transform function
+
+static const char* plugin_transform(const char* input) { // transform input string
     if (!input) {
         return NULL;
     }
-    
-    // Log the string to stdout
-    printf("[logger] %s\n", input);
-    fflush(stdout); // Ensure immediate output
-    
-    // Return a copy of the input string to pass to the next plugin
-    return strdup(input);
+
+    printf("[logger] %s\n", input); // log the input string
+    fflush(stdout); // ensure immediate output
+
+    return strdup(input); // return a copy of the input string
 }
 
-// Plugin interface implementations
-const char* plugin_get_name(void) { return "logger"; }
-const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "logger", queue_size); }
+const char* plugin_get_name(void) { return "logger"; } // get plugin name
+const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "logger", queue_size); } // initialize plugin
