@@ -6,7 +6,7 @@
 // Logger plugin transform function
 
 static const char* plugin_transform(const char* input) { // transform input string
-    if (!input) {
+    if (!input) { // handle NULL input
         return NULL;
     }
 
