@@ -8,11 +8,11 @@
 // Typewriter plugin transform function
 
 static const char* plugin_transform(const char* input) { // transform the input string
-    if (!input) return NULL;
+    if (!input) return NULL; // handle NULL input
     size_t len = strlen(input);
     printf("[typewriter] ");
-    fflush(stdout);
-    for (size_t i = 0; i < len; i++) {
+    fflush(stdout); 
+    for (size_t i = 0; i < len; i++) { // print each character with delay
         putchar(input[i]);
         fflush(stdout);
         usleep(100000); // 100ms

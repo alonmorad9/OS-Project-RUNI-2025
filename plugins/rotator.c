@@ -5,10 +5,10 @@
 // Rotator plugin transformation function
 
 static const char* plugin_transform(const char* input) { // transform the input string
-    if (!input) return NULL;
+    if (!input) return NULL; // handle NULL input
     size_t len = strlen(input);
-    char* out = (char*)malloc(len + 1);
-    if (!out) return NULL;
+    char* out = (char*)malloc(len + 1); // allocate memory for output string
+    if (!out) return NULL; // handle memory allocation failure
     if (len == 0) {
         out[0] = '\0';
         return out;

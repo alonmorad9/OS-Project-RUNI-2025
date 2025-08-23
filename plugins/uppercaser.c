@@ -7,7 +7,7 @@
 // Uppercaser plugin transformation function
 
 static const char* plugin_transform(const char* input) { // transform the input string
-    if (!input) {
+    if (!input) { // handle NULL input
         return NULL;
     }
     
