@@ -3,15 +3,16 @@
 
 /**
  * Plugin SDK Interface, defines the contract between the main application and plugins
+ * This interface allows for dynamic loading and communication with plugins.
  */
 
 // Function pointer types for plugin interface
-typedef const char* (*plugin_init_func_t)(int queue_size); // Initialize the plugin
-typedef const char* (*plugin_fini_func_t)(void); // Finalize the plugin
-typedef const char* (*plugin_place_work_func_t)(const char* str); // Place work into the plugin's queue
-typedef void (*plugin_attach_func_t)(const char* (*next_place_work)(const char*)); // Attach next plugin
-typedef const char* (*plugin_wait_finished_func_t)(void); // Wait for plugin to finish
-typedef const char* (*plugin_get_name_func_t)(void); // Get the plugin's name
+typedef const char* (*plugin_init_func_t)(int queue_size); // initialize the plugin
+typedef const char* (*plugin_fini_func_t)(void); // finalize the plugin
+typedef const char* (*plugin_place_work_func_t)(const char* str); // place work into the plugin's queue
+typedef void (*plugin_attach_func_t)(const char* (*next_place_work)(const char*)); // attach next plugin
+typedef const char* (*plugin_wait_finished_func_t)(void); // wait for plugin to finish
+typedef const char* (*plugin_get_name_func_t)(void); // get the plugin's name
 
 /**
  * Get the plugin's name

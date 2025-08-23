@@ -45,7 +45,7 @@ for plugin_name in "${plugins[@]}"; do
   fi
   # Build each plugin
   print_status "Building plugin: $plugin_name"
-  gcc -std=c11 -D_POSIX_C_SOURCE=200809L -fPIC -shared -Wall -Wextra -O2 -o output/${plugin_name}.so \
+  gcc -std=c11 -D_POSIX_C_SOURCE=200809L -fPIC -shared -Wall -Wextra -O2 -o output/${plugin_name}.so \ 
     plugins/${plugin_name}.c \
     plugins/plugin_common.c \
     plugins/sync/monitor.c \
