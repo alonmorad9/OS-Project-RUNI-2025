@@ -5,11 +5,11 @@
 // Flipper plugin transformation function
 
 static const char* plugin_transform(const char* input) { // transform input string
-    if (!input) return NULL;
+    if (!input) return NULL; // handle NULL input
     size_t len = strlen(input);
-    char* out = (char*)malloc(len + 1);
-    if (!out) return NULL;
-    for (size_t i = 0; i < len; i++) {
+    char* out = (char*)malloc(len + 1); // allocate memory for output string
+    if (!out) return NULL; // handle memory allocation failure
+    for (size_t i = 0; i < len; i++) { // reverse input string
         out[i] = input[len - 1 - i];
     }
     out[len] = '\0';
