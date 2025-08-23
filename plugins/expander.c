@@ -5,10 +5,10 @@
 // Expander plugin transformation function
 
 static const char* plugin_transform(const char* input) { // transform input string
-    if (!input) return NULL;
+    if (!input) return NULL; // handle NULL input
     size_t len = strlen(input);
-    if (len == 0) {
-        char* empty = (char*)malloc(1);
+    if (len == 0) { // handle empty input
+        char* empty = (char*)malloc(1); // allocate memory for empty string
         if (empty) empty[0] = '\0';
         return empty;
     }
