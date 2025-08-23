@@ -79,6 +79,16 @@ int main(int argc, char** argv) {
     // Load plugins
     for (int i = 0; i < num_plugins; i++) {
         const char* plugin_name = argv[2 + i];
+        
+        // Add plugin name length validation
+        if (strlen(plugin_name) > 400) {  // Leave room for "./output/" and ".so" in 512-byte buffer
+            fprintf(stderr, "Plugin name too long: %s\n", plugin_name);
+            print_usage();
+            cleanup_plugins(plugins, i);
+            free(plugins);
+            return 1;
+        }
+        
         char so_path[512];
         snprintf(so_path, sizeof(so_path), "./output/%s.so", plugin_name);
 
@@ -139,7 +149,7 @@ int main(int argc, char** argv) {
     }
 
     // Read input lines and feed into pipeline
-    char buffer[1026];
+    char buffer[1025];  // 1024 chars + null terminator
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
         size_t len = strlen(buffer);
         if (len > 0 && buffer[len - 1] == '\n') {
@@ -178,7 +188,6 @@ int main(int argc, char** argv) {
     cleanup_plugins(plugins, num_plugins);
     free(plugins);
 
-fprintf(stderr, "Pipeline shutdown complete\n"); /* moved to stderr to keep STDOUT clean */
+    fprintf(stderr, "Pipeline shutdown complete\n"); /* moved to stderr to keep STDOUT clean */
     return 0;
 }
-

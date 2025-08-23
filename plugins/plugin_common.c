@@ -30,6 +30,8 @@ void* plugin_consumer_thread(void* arg) { // consumer thread for plugin
 
         if (!work_item) { // check if work item is NULL
             log_error(context, "Failed to get work item from queue");
+            context->finished = 1;
+            consumer_producer_signal_finished(context->queue);
             break;
         }
 
@@ -52,19 +54,23 @@ void* plugin_consumer_thread(void* arg) { // consumer thread for plugin
         free(work_item); // free the original work item
 
         if (!processed_item) { // check if processed item is NULL
-            log_error(context, "Plugin processing function returned NULL");
-            continue;
+            log_error(context, "Plugin processing function returned NULL - terminating");
+            context->finished = 1;
+            consumer_producer_signal_finished(context->queue);
+            break;
         }
 
         if (context->next_place_work) { // check if there is a next plugin
             const char* result = context->next_place_work(processed_item);
             if (result != NULL) {
                 log_error(context, "Failed to pass work to next plugin");
+                free((void*)processed_item); // free the processed item on error
+                context->finished = 1;
+                consumer_producer_signal_finished(context->queue);
+                break;
             }
-        }
-        
-        // If this is the last plugin in the chain, we need to free the processed item
-        if (!context->next_place_work) {
+        } else {
+            // If this is the last plugin in the chain, we need to free the processed item
             free((void*)processed_item);
         }
     }

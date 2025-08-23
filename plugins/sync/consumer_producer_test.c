@@ -155,6 +155,48 @@ void test_finished_signal() { // finished signal test
     printf("✓ Finished signal test passed\n");
 }
 
+// Add this test to your consumer_producer_test.c to verify END propagation
+
+void test_end_propagation() {
+    printf("\n=== Test: END Signal Propagation ===\n");
+    
+    consumer_producer_t queue;
+    const char* result = consumer_producer_init(&queue, 5);
+    assert(result == NULL);
+    
+    // Put regular item
+    result = consumer_producer_put(&queue, "normal_item");
+    assert(result == NULL);
+    
+    // Put END signal
+    result = consumer_producer_put(&queue, "<END>");
+    assert(result == NULL);
+    
+    // Get regular item first
+    char* item1 = consumer_producer_get(&queue);
+    assert(item1 != NULL);
+    assert(strcmp(item1, "normal_item") == 0);
+    free(item1);
+    
+    // Get END signal
+    char* item2 = consumer_producer_get(&queue);
+    assert(item2 != NULL);
+    assert(strcmp(item2, "<END>") == 0);
+    free(item2);
+    
+    // Test that END can be detected properly
+    result = consumer_producer_put(&queue, "<END>");
+    assert(result == NULL);
+    
+    char* end_item = consumer_producer_get(&queue);
+    assert(end_item != NULL);
+    assert(strcmp(end_item, "<END>") == 0);
+    free(end_item);
+    
+    consumer_producer_destroy(&queue);
+    printf("END propagation test passed\n");
+}
+
 int main() { // Main test runner
     printf("Starting Consumer-Producer Queue Unit Tests...\n");
     

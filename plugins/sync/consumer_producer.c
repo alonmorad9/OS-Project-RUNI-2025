@@ -48,7 +48,7 @@ const char* consumer_producer_init(consumer_producer_t* queue, int capacity) { /
         return "Failed to initialize finished_monitor";
     }
     
-    // queue starts as not full (since it's empty)
+    // queue starts as not full (since it's empty), not empty is false initially
     monitor_signal(&queue->not_full_monitor);
 
     return NULL; // success
@@ -89,8 +89,10 @@ const char* consumer_producer_put(consumer_producer_t* queue, const char* item) 
     if (!queue || !item) {
         return "Invalid queue or item";
     }
+    
     while (1) { // loop until item is added
         pthread_mutex_lock(&queue->mutex);
+        
         if (queue->count < queue->capacity) {
             // create a copy of the string
             char* item_copy = strdup(item);
@@ -98,21 +100,28 @@ const char* consumer_producer_put(consumer_producer_t* queue, const char* item) 
                 pthread_mutex_unlock(&queue->mutex);
                 return "Failed to allocate memory for item copy";
             }
+            
             // add item to the queue
             queue->items[queue->tail] = item_copy;
             queue->tail = (queue->tail + 1) % queue->capacity;
             queue->count++;
 
-            // if queue is now full, reset the not_full monitor
-            if (queue->count == queue->capacity) {
+            // signal that queue is not empty (now has items)
+            monitor_signal(&queue->not_empty_monitor);
+            
+            // check if queue is now full after adding this item
+            int is_now_full = (queue->count == queue->capacity);
+            
+            pthread_mutex_unlock(&queue->mutex);
+            
+            // if queue became full, reset the not_full_monitor so producers will wait
+            if (is_now_full) {
                 monitor_reset(&queue->not_full_monitor);
             }
-
-            // signal that queue is not empty
-            monitor_signal(&queue->not_empty_monitor);
-            pthread_mutex_unlock(&queue->mutex);
+            
             return NULL; // success
         }
+        
         pthread_mutex_unlock(&queue->mutex);
 
         // wait until queue is not full
@@ -127,8 +136,10 @@ char* consumer_producer_get(consumer_producer_t* queue) { // get item from the q
     if (!queue) {
         return NULL;
     }
+    
     while (1) { // loop until item is retrieved
         pthread_mutex_lock(&queue->mutex);
+        
         if (queue->count > 0) {
             // get item from the queue
             char* item = queue->items[queue->head];
@@ -136,16 +147,22 @@ char* consumer_producer_get(consumer_producer_t* queue) { // get item from the q
             queue->head = (queue->head + 1) % queue->capacity;
             queue->count--;
 
-            // if queue is now empty, reset the not_empty monitor
-            if (queue->count == 0) {
+            // signal that queue is not full (now has space)
+            monitor_signal(&queue->not_full_monitor);
+            
+            // check if queue is now empty after removing this item
+            int is_now_empty = (queue->count == 0);
+            
+            pthread_mutex_unlock(&queue->mutex);
+            
+            // if queue became empty, reset the not_empty_monitor so consumers will wait
+            if (is_now_empty) {
                 monitor_reset(&queue->not_empty_monitor);
             }
-
-            // signal that queue is not full
-            monitor_signal(&queue->not_full_monitor);
-            pthread_mutex_unlock(&queue->mutex);
+            
             return item;
         }
+        
         pthread_mutex_unlock(&queue->mutex);
 
         // wait until queue is not empty

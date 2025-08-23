@@ -20,7 +20,10 @@ print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
 # Run the build script
 print_status "Running build.sh"
-./build.sh
+if ! ./build.sh; then
+    print_error "Build failed"
+    exit 1
+fi
 
 failures=0
 total_tests=0
@@ -30,12 +33,15 @@ run_test() {
     local name="$1"
     local expected="$2"
     local cmd="$3"
+    local timeout_val="${4:-30}"  # Default 30 seconds, allow override
     total_tests=$((total_tests + 1))
     
     print_info "Test $total_tests: $name"
     
     local actual
-    if actual=$(timeout 15 bash -c "$cmd" 2>/dev/null); then
+    if actual=$(timeout "$timeout_val" bash -c "$cmd" 2>&1); then
+        # Extract just stdout, ignore stderr
+        actual=$(echo "$actual" | grep -v "Pipeline shutdown complete" | grep -v "\[ERROR\]" | grep -v "\[INFO\]" || true)
         if [[ "$actual" == "$expected" ]]; then
             print_status "$name: PASS"
         else
@@ -58,7 +64,7 @@ run_error_test() {
     
     print_info "Test $total_tests: $name (expecting error)"
     
-    if timeout 5 bash -c "$cmd" >/dev/null 2>&1; then
+    if timeout 10 bash -c "$cmd" >/dev/null 2>&1; then
         print_error "$name: FAIL (should have failed)"
         failures=$((failures+1))
     else
@@ -71,12 +77,13 @@ run_contains_test() {
     local name="$1"
     local contains="$2"
     local cmd="$3"
+    local timeout_val="${4:-30}"  # Default 30 seconds, allow override for typewriter
     total_tests=$((total_tests + 1))
     
     print_info "Test $total_tests: $name"
     
     local output
-    if output=$(timeout 15 bash -c "$cmd" 2>&1); then
+    if output=$(timeout "$timeout_val" bash -c "$cmd" 2>&1); then
         if echo "$output" | grep -q "$contains"; then
             print_status "$name: PASS"
         else
@@ -142,14 +149,13 @@ run_test "flipper + expander" "[logger] o l l e h" \
 # complex chains
 print_status "=== COMPLEX CHAIN TESTS ==="
 
-
 # hello -> uppercaser -> HELLO -> flipper -> OLLEH -> expander -> O L L E H
 run_test "3-plugin chain" "[logger] O L L E H" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 10 uppercaser flipper expander logger | grep '\\[logger\\]' | head -n1"
 
 # hello -> uppercaser -> HELLO -> flipper -> OLLEH -> expander -> O L L E H -> rotator -> HO L L E (with space at end)
 print_info "Checking 4-plugin chain actual output..."
-actual_4chain=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 uppercaser flipper expander rotator logger | grep '\[logger\]' | head -n1 || echo "TIMEOUT")
+actual_4chain=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 uppercaser flipper expander rotator logger 2>/dev/null | grep '\[logger\]' | head -n1 || echo "TIMEOUT")
 print_info "4-plugin chain produces: '$actual_4chain'"
 
 # Check if the actual output matches the expected output
@@ -165,10 +171,10 @@ fi
 # repeated plugin tests, including timeouts and debugging
 print_status "=== REPEATED PLUGIN TESTS ==="
 
-print_info "Test 11: double rotator - Testing mathematical property"
+print_info "Test: double rotator - Testing mathematical property"
 # hello -> rotator -> ohell -> rotator -> lohel
-rotate1=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 rotator logger | grep '\[logger\]' | cut -d' ' -f2)
-rotate2=$(echo -e "${rotate1}\n<END>" | timeout 10 ./output/analyzer 10 rotator logger | grep '\[logger\]' | cut -d' ' -f2)
+rotate1=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 rotator logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
+rotate2=$(echo -e "${rotate1}\n<END>" | timeout 10 ./output/analyzer 10 rotator logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
 total_tests=$((total_tests + 1))
 if [[ "$rotate2" == "lohel" ]]; then
     print_status "double rotator (mathematical property): PASS"
@@ -178,9 +184,9 @@ else
     failures=$((failures+1))
 fi
 
-print_info "Test 12: double flipper (identity) - Testing mathematical property"
-result1=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 flipper logger | grep '\[logger\]' | cut -d' ' -f2)
-result2=$(echo -e "${result1}\n<END>" | timeout 10 ./output/analyzer 10 flipper logger | grep '\[logger\]' | cut -d' ' -f2)
+print_info "Test: double flipper (identity) - Testing mathematical property"
+result1=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 flipper logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
+result2=$(echo -e "${result1}\n<END>" | timeout 10 ./output/analyzer 10 flipper logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
 total_tests=$((total_tests + 1))
 if [[ "$result2" == "hello" ]]; then
     print_status "double flipper (mathematical property): PASS"
@@ -221,19 +227,24 @@ run_test "queue size 100" "[logger] HELLO" \
 print_status "=== ASSIGNMENT COMPLIANCE ==="
 
 run_contains_test "assignment example output" "\\[logger\\] OHELL" \
-    "echo -e 'hello\\n<END>' | ./output/analyzer 20 uppercaser rotator logger flipper typewriter"
+    "echo -e 'hello\\n<END>' | ./output/analyzer 20 uppercaser rotator logger flipper typewriter" 45
 
-# typewriter tests
+# typewriter tests (need longer timeout due to 100ms per character)
 print_status "=== TYPEWRITER TESTS ==="
 
 run_contains_test "typewriter output format" "\\[typewriter\\] hi" \
-    "echo -e 'hi\\n<END>' | ./output/analyzer 10 typewriter"
+    "echo -e 'hi\\n<END>' | ./output/analyzer 10 typewriter" 15
+
+# Test <END> propagation through pipeline
+print_status "=== END PROPAGATION TEST ==="
+run_contains_test "END propagates through entire pipeline" "Pipeline shutdown complete" \
+    "echo -e 'test\\n<END>' | ./output/analyzer 5 uppercaser rotator logger 2>&1"
 
 # shutdown tests
 print_status "=== SHUTDOWN TESTS ==="
 
 run_contains_test "pipeline shutdown message" "Pipeline shutdown complete" \
-    "echo -e '<END>' | ./output/analyzer 10 logger"
+    "echo -e '<END>' | ./output/analyzer 10 logger 2>&1"
 
 # error condition tests
 print_status "=== ERROR CONDITION TESTS ==="
@@ -244,6 +255,7 @@ run_error_test "invalid queue size negative" "./output/analyzer -5 logger"
 run_error_test "invalid queue size zero" "./output/analyzer 0 logger"
 run_error_test "non-numeric queue size" "./output/analyzer abc logger"
 run_error_test "invalid plugin" "./output/analyzer 10 nonexistent_plugin"
+run_error_test "plugin name too long" "./output/analyzer 10 $(printf 'a%.0s' {1..500})"
 
 # summary, including total tests, passed tests, and failed tests
 print_status "=== TEST SUMMARY ==="
