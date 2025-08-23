@@ -14,11 +14,15 @@ static const char* plugin_transform(const char* input) { // transform input stri
         return empty;
     }
     
-    if (len == 1) { // single character needs no spaces
+    if (len == 1) { 
+        // Single character case: no spaces to insert between characters
+        // Assignment: "Inserts a single white space between each character"
+        // For one character, there are no "between" positions, so return as-is
         return strdup(input);
     }
     
-    // each char separated by one space: size = len + (len-1) spaces
+    // For multiple characters: insert spaces between each pair
+    // e.g., "abc" becomes "a b c" (len=3, spaces=2, total=5)
     size_t out_len = len + (len - 1);
     char* out = (char*)malloc(out_len + 1);
     if (!out) return NULL;
@@ -26,7 +30,7 @@ static const char* plugin_transform(const char* input) { // transform input stri
     size_t j = 0;
     for (size_t i = 0; i < len; i++) {
         out[j++] = input[i];
-        if (i + 1 < len) out[j++] = ' ';
+        if (i + 1 < len) out[j++] = ' '; // insert space if not the last character
     }
     out[out_len] = '\0';
     return out;

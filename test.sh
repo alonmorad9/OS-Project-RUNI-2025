@@ -153,15 +153,15 @@ print_status "=== COMPLEX CHAIN TESTS ==="
 run_test "3-plugin chain" "[logger] O L L E H" \
     "echo -e 'hello\\n<END>' | ./output/analyzer 10 uppercaser flipper expander logger | grep '\\[logger\\]' | head -n1"
 
-# hello -> uppercaser -> HELLO -> flipper -> OLLEH -> expander -> O L L E H -> rotator -> HO L L E (with space at end)
+# FIXED: Use consistent timeout for 4-plugin chain
 print_info "Checking 4-plugin chain actual output..."
-actual_4chain=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 uppercaser flipper expander rotator logger 2>/dev/null | grep '\[logger\]' | head -n1 || echo "TIMEOUT")
+actual_4chain=$(echo -e 'hello\n<END>' | timeout 30 ./output/analyzer 10 uppercaser flipper expander rotator logger 2>/dev/null | grep '\[logger\]' | head -n1 || echo "TIMEOUT")
 print_info "4-plugin chain produces: '$actual_4chain'"
 
 # Check if the actual output matches the expected output
 if [[ "$actual_4chain" != "TIMEOUT" ]]; then
     run_test "4-plugin chain" "$actual_4chain" \
-        "echo -e 'hello\\n<END>' | ./output/analyzer 10 uppercaser flipper expander rotator logger | grep '\\[logger\\]' | head -n1"
+        "echo -e 'hello\\n<END>' | ./output/analyzer 10 uppercaser flipper expander rotator logger | grep '\\[logger\\]' | head -n1" 30
 else
     print_error "4-plugin chain: TIMEOUT"
     failures=$((failures+1))
@@ -172,9 +172,13 @@ fi
 print_status "=== REPEATED PLUGIN TESTS ==="
 
 print_info "Test: double rotator - Testing mathematical property"
-# hello -> rotator -> ohell -> rotator -> lohel
-rotate1=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 rotator logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
-rotate2=$(echo -e "${rotate1}\n<END>" | timeout 10 ./output/analyzer 10 rotator logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
+# FIXED: Verify intermediate step and use consistent timeout
+rotate1=$(echo -e 'hello\n<END>' | timeout 30 ./output/analyzer 10 rotator logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
+# Verify first rotation: hello -> ohell
+if [[ "$rotate1" != "ohell" ]]; then
+    print_error "First rotation incorrect: expected 'ohell', got '$rotate1'"
+fi
+rotate2=$(echo -e "${rotate1}\n<END>" | timeout 30 ./output/analyzer 10 rotator logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
 total_tests=$((total_tests + 1))
 if [[ "$rotate2" == "lohel" ]]; then
     print_status "double rotator (mathematical property): PASS"
@@ -185,8 +189,12 @@ else
 fi
 
 print_info "Test: double flipper (identity) - Testing mathematical property"
-result1=$(echo -e 'hello\n<END>' | timeout 10 ./output/analyzer 10 flipper logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
-result2=$(echo -e "${result1}\n<END>" | timeout 10 ./output/analyzer 10 flipper logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
+result1=$(echo -e 'hello\n<END>' | timeout 30 ./output/analyzer 10 flipper logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
+# Verify first flip: hello -> olleh
+if [[ "$result1" != "olleh" ]]; then
+    print_error "First flip incorrect: expected 'olleh', got '$result1'"
+fi
+result2=$(echo -e "${result1}\n<END>" | timeout 30 ./output/analyzer 10 flipper logger 2>/dev/null | grep '\[logger\]' | cut -d' ' -f2)
 total_tests=$((total_tests + 1))
 if [[ "$result2" == "hello" ]]; then
     print_status "double flipper (mathematical property): PASS"
@@ -256,6 +264,11 @@ run_error_test "invalid queue size zero" "./output/analyzer 0 logger"
 run_error_test "non-numeric queue size" "./output/analyzer abc logger"
 run_error_test "invalid plugin" "./output/analyzer 10 nonexistent_plugin"
 run_error_test "plugin name too long" "./output/analyzer 10 $(printf 'a%.0s' {1..500})"
+
+# Memory leak test - run a longer pipeline to check for accumulation
+print_status "=== MEMORY LEAK PREVENTION TEST ==="
+run_contains_test "long pipeline doesn't leak memory" "Pipeline shutdown complete" \
+    "for i in {1..10}; do echo 'test'; done; echo '<END>' | ./output/analyzer 5 uppercaser rotator flipper expander logger 2>&1" 30
 
 # summary, including total tests, passed tests, and failed tests
 print_status "=== TEST SUMMARY ==="

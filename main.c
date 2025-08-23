@@ -3,6 +3,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <limits.h>
 #include "plugins/plugin_sdk.h"
 
 typedef struct {
@@ -36,11 +37,13 @@ static void print_usage(void) {
 
 static void cleanup_plugins(plugin_handle_t* plugins, int count) {
     if (!plugins) return;
+    
     for (int i = 0; i < count; i++) {
         if (plugins[i].fini) {
             plugins[i].fini();
         }
     }
+    
     for (int i = 0; i < count; i++) {
         if (plugins[i].handle) {
             dlclose(plugins[i].handle);
@@ -62,7 +65,7 @@ int main(int argc, char** argv) {
 
     char* endptr = NULL;
     long queue_size_long = strtol(argv[1], &endptr, 10);
-    if (endptr == argv[1] || *endptr != '\0' || queue_size_long <= 0 || queue_size_long > 1000000) {
+    if (endptr == argv[1] || *endptr != '\0' || queue_size_long <= 0 || queue_size_long > INT_MAX) {
         fprintf(stderr, "Invalid queue size\n");
         print_usage();
         return 1;
@@ -80,8 +83,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < num_plugins; i++) {
         const char* plugin_name = argv[2 + i];
         
-        // Add plugin name length validation
-        if (strlen(plugin_name) > 400) {  // Leave room for "./output/" and ".so" in 512-byte buffer
+        if (strlen(plugin_name) > 400) {
             fprintf(stderr, "Plugin name too long: %s\n", plugin_name);
             print_usage();
             cleanup_plugins(plugins, i);
@@ -111,7 +113,7 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        // Resolve symbols
+        // Get function pointers
         plugins[i].init = (plugin_init_func_t)dlsym(handle, "plugin_init");
         plugins[i].fini = (plugin_fini_func_t)dlsym(handle, "plugin_fini");
         plugins[i].place_work = (plugin_place_work_func_t)dlsym(handle, "plugin_place_work");
@@ -128,12 +130,11 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Initialize plugins
+    // Initialize all plugins
     for (int i = 0; i < num_plugins; i++) {
         const char* err = plugins[i].init(queue_size);
         if (err != NULL) {
             fprintf(stderr, "Failed to init plugin '%s': %s\n", plugins[i].name, err);
-            // cleanup any already-initialized
             for (int j = 0; j < i; j++) {
                 plugins[j].fini();
             }
@@ -143,13 +144,13 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Attach pipeline
+    // Connect the pipeline
     for (int i = 0; i < num_plugins - 1; i++) {
         plugins[i].attach(plugins[i + 1].place_work);
     }
 
-    // Read input lines and feed into pipeline
-    char buffer[1025];  // 1024 chars + null terminator
+    // Main processing loop
+    char buffer[1027];
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
         size_t len = strlen(buffer);
         if (len > 0 && buffer[len - 1] == '\n') {
@@ -157,7 +158,6 @@ int main(int argc, char** argv) {
             len--;
         }
 
-        // Send to first plugin
         const char* place_err = plugins[0].place_work(buffer);
         if (place_err != NULL) {
             fprintf(stderr, "Failed to place work in first plugin: %s\n", place_err);
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Wait for plugins to finish (from first to last)
+    // Wait for everything to finish
     for (int i = 0; i < num_plugins; i++) {
         const char* err = plugins[i].wait_finished();
         if (err != NULL) {
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Cleanup
+    // Clean up
     for (int i = 0; i < num_plugins; i++) {
         const char* err = plugins[i].fini();
         if (err != NULL) {
@@ -188,6 +188,6 @@ int main(int argc, char** argv) {
     cleanup_plugins(plugins, num_plugins);
     free(plugins);
 
-    fprintf(stderr, "Pipeline shutdown complete\n"); /* moved to stderr to keep STDOUT clean */
+    fprintf(stderr, "Pipeline shutdown complete\n");
     return 0;
 }

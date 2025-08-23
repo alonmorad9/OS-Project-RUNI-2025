@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 
-# Build script for the project
-# This script compiles the main analyzer and all plugins
-# It also runs unit tests for the plugins
-# Finally, it packages the plugins into a single shared library
-
-set -euo pipefail # Enable strict error handling
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,10 +11,8 @@ print_status() { echo -e "${GREEN}[BUILD]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# Create output directory
 mkdir -p output
 
-# Build the main analyzer
 print_status "Building analyzer (main)"
 if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -o output/analyzer \
   main.c \
@@ -28,7 +21,6 @@ if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -o output/analyzer
     exit 1
 fi
 
-# Build the sync unit tests
 print_status "Building sync unit tests"
 if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -Iplugins -o output/monitor_test \
   plugins/sync/monitor_test.c plugins/sync/monitor.c -lpthread; then
@@ -36,7 +28,6 @@ if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -Iplugins -o outpu
     exit 1
 fi
 
-# Build the consumer-producer unit tests
 if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -Iplugins -o output/consumer_producer_test \
   plugins/sync/consumer_producer_test.c \
   plugins/sync/monitor.c plugins/sync/consumer_producer.c -lpthread; then
@@ -44,7 +35,6 @@ if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -Iplugins -o outpu
     exit 1
 fi
 
-# Build the plugins
 print_status "Building plugins"
 plugins=(logger uppercaser rotator flipper expander typewriter)
 for plugin_name in "${plugins[@]}"; do
@@ -53,7 +43,7 @@ for plugin_name in "${plugins[@]}"; do
     print_warning "Skipping missing plugin source $src_file"
     continue
   fi
-  # Build each plugin
+  
   print_status "Building plugin: $plugin_name"
   if ! gcc -std=c11 -D_POSIX_C_SOURCE=200809L -fPIC -shared -Wall -Wextra -O2 -o output/${plugin_name}.so \
     plugins/${plugin_name}.c \
@@ -66,4 +56,25 @@ for plugin_name in "${plugins[@]}"; do
   fi
 done
 
-print_status "Build complete - all components built successfully"
+# Quick verification that everything works
+print_status "Running unit tests to verify build"
+
+print_status "Testing monitor implementation"
+if ! timeout 10 ./output/monitor_test >/dev/null 2>&1; then
+    print_error "Monitor unit tests failed"
+    exit 1
+fi
+
+print_status "Testing consumer-producer queue"
+if ! timeout 10 ./output/consumer_producer_test >/dev/null 2>&1; then
+    print_error "Consumer-producer unit tests failed"
+    exit 1
+fi
+
+print_status "Running smoke test"
+if ! echo -e 'test\n<END>' | timeout 10 ./output/analyzer 5 logger >/dev/null 2>&1; then
+    print_error "Smoke test failed"
+    exit 1
+fi
+
+print_status "Build complete - all components built and tested successfully"
