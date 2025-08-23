@@ -14,7 +14,7 @@ void log_error(plugin_context_t* context, const char* message) { // log error me
 
 void log_info(plugin_context_t* context, const char* message) { // log info messages
     if (context && context->name && message) {
-        printf("[INFO][%s] - %s\n", context->name, message); // log the info message
+        fprintf(stderr, "[INFO][%s] - %s\n", context->name, message); // log the info message
     }
 }
 
