@@ -4,20 +4,19 @@
 #include <string.h>
 #include <ctype.h>
 
-// Uppercaser plugin transformation function
+// Uppercaser plugin - converts lowercase to uppercase
 
-static const char* plugin_transform(const char* input) { // transform the input string
-    if (!input) { // handle NULL input
+static const char* plugin_transform(const char* input) {
+    if (!input) {
         return NULL;
     }
     
-    // Create a copy of the input string
     char* result = strdup(input);
     if (!result) {
         return NULL;
     }
     
-    // Convert all alphabetic characters to uppercase
+    // Convert to uppercase
     for (int i = 0; result[i] != '\0'; i++) {
         if (isalpha(result[i])) {
             result[i] = toupper(result[i]);
@@ -27,5 +26,10 @@ static const char* plugin_transform(const char* input) { // transform the input 
     return result;
 }
 
-const char* plugin_get_name(void) { return "uppercaser"; } // get plugin name
-const char* plugin_init(int queue_size) { return common_plugin_init(plugin_transform, "uppercaser", queue_size); } // initialize plugin
+const char* plugin_get_name(void) { 
+    return "uppercaser"; 
+}
+
+const char* plugin_init(int queue_size) { 
+    return common_plugin_init(plugin_transform, "uppercaser", queue_size); 
+}
